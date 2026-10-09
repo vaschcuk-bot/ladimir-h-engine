@@ -17,58 +17,59 @@ PRESETS = {
     "Технологический / Долгосрочный рывок": {"V": 1.00, "R": 1.40, "T": 1.40, "Q": 1.20, "M": 1.30},
 }
 
-for k in ['V', 'R', 'T', 'Q', 'M']:
-    if f"input_{k}" not in st.session_state:
-        st.session_state[f"input_{k}"] = 1.00
-    if f"prev_{k}" not in st.session_state:
-        st.session_state[f"prev_{k}"] = 1.00
+if 'ver' not in st.session_state:
+    st.session_state['ver'] = 0
+    for k in ['V', 'R', 'T', 'Q', 'M']:
+        st.session_state[k] = 1.00
 
 def clamp(val):
     return max(0.10, min(2.00, round(val, 2)))
 
-# Динамический пересчет: обновляем непосредственно ключи виджетов input_*
+# Динамический пересчет с версионированием виджетов
 def update_inputs(changed_key):
-    new_val = st.session_state[f"input_{changed_key}"]
-    old_val = st.session_state[f"prev_{changed_key}"]
+    ver = st.session_state['ver']
+    new_val = st.session_state[f"input_{changed_key}_{ver}"]
+    old_val = st.session_state[changed_key]
     delta = round(new_val - old_val, 2)
 
     if abs(delta) < 0.001:
         return
 
-    if changed_key == 'M':
-        st.session_state['input_Q'] = clamp(st.session_state['input_Q'] + 0.65 * delta)
-        st.session_state['input_R'] = clamp(st.session_state['input_R'] + 0.45 * delta)
-        st.session_state['input_T'] = clamp(st.session_state['input_T'] + 0.50 * delta)
-        st.session_state['input_V'] = clamp(st.session_state['input_V'] - 0.40 * delta)
-    elif changed_key == 'T':
-        st.session_state['input_Q'] = clamp(st.session_state['input_Q'] + 0.55 * delta)
-        st.session_state['input_M'] = clamp(st.session_state['input_M'] + 0.50 * delta)
-        st.session_state['input_R'] = clamp(st.session_state['input_R'] + 0.40 * delta)
-        st.session_state['input_V'] = clamp(st.session_state['input_V'] - 0.35 * delta)
-    elif changed_key == 'R':
-        st.session_state['input_Q'] = clamp(st.session_state['input_Q'] + 0.50 * delta)
-        st.session_state['input_T'] = clamp(st.session_state['input_T'] + 0.40 * delta)
-        st.session_state['input_M'] = clamp(st.session_state['input_M'] + 0.30 * delta)
-        st.session_state['input_V'] = clamp(st.session_state['input_V'] + 0.20 * delta)
-    elif changed_key == 'Q':
-        st.session_state['input_M'] = clamp(st.session_state['input_M'] + 0.50 * delta)
-        st.session_state['input_T'] = clamp(st.session_state['input_T'] + 0.35 * delta)
-        st.session_state['input_R'] = clamp(st.session_state['input_R'] + 0.30 * delta)
-    elif changed_key == 'V' and delta > 0:
-        st.session_state['input_Q'] = clamp(st.session_state['input_Q'] - 0.45 * delta)
-        st.session_state['input_M'] = clamp(st.session_state['input_M'] - 0.55 * delta)
-        st.session_state['input_R'] = clamp(st.session_state['input_R'] - 0.35 * delta)
-        st.session_state['input_T'] = clamp(st.session_state['input_T'] - 0.30 * delta)
+    st.session_state[changed_key] = new_val
 
-    # Запоминаем новые текущие значения как предыдущие
-    for k in ['V', 'R', 'T', 'Q', 'M']:
-        st.session_state[f"prev_{k}"] = st.session_state[f"input_{k}"]
+    if changed_key == 'M':
+        st.session_state['Q'] = clamp(st.session_state['Q'] + 0.65 * delta)
+        st.session_state['R'] = clamp(st.session_state['R'] + 0.45 * delta)
+        st.session_state['T'] = clamp(st.session_state['T'] + 0.50 * delta)
+        st.session_state['V'] = clamp(st.session_state['V'] - 0.40 * delta)
+    elif changed_key == 'T':
+        st.session_state['Q'] = clamp(st.session_state['Q'] + 0.55 * delta)
+        st.session_state['M'] = clamp(st.session_state['M'] + 0.50 * delta)
+        st.session_state['R'] = clamp(st.session_state['R'] + 0.40 * delta)
+        st.session_state['V'] = clamp(st.session_state['V'] - 0.35 * delta)
+    elif changed_key == 'R':
+        st.session_state['Q'] = clamp(st.session_state['Q'] + 0.50 * delta)
+        st.session_state['T'] = clamp(st.session_state['T'] + 0.40 * delta)
+        st.session_state['M'] = clamp(st.session_state['M'] + 0.30 * delta)
+        st.session_state['V'] = clamp(st.session_state['V'] + 0.20 * delta)
+    elif changed_key == 'Q':
+        st.session_state['M'] = clamp(st.session_state['M'] + 0.50 * delta)
+        st.session_state['T'] = clamp(st.session_state['T'] + 0.35 * delta)
+        st.session_state['R'] = clamp(st.session_state['R'] + 0.30 * delta)
+    elif changed_key == 'V' and delta > 0:
+        st.session_state['Q'] = clamp(st.session_state['Q'] - 0.45 * delta)
+        st.session_state['M'] = clamp(st.session_state['M'] - 0.55 * delta)
+        st.session_state['R'] = clamp(st.session_state['R'] - 0.35 * delta)
+        st.session_state['T'] = clamp(st.session_state['T'] - 0.30 * delta)
+
+    # Увеличиваем версию для перерисовки полей ввода на следующем проходе
+    st.session_state['ver'] += 1
 
 def apply_preset():
     preset = PRESETS[st.session_state.selected_preset]
     for k, v in preset.items():
-        st.session_state[f"input_{k}"] = v
-        st.session_state[f"prev_{k}"] = v
+        st.session_state[k] = v
+    st.session_state['ver'] += 1
 
 # 2. ИНТЕРФЕЙС
 st.title("🌐 Digital Twin Earth: H-Engine Simulator")
@@ -76,24 +77,26 @@ st.caption("Автор концепта: В. В. Ващук (Dedushka LADiMIR) |
 
 col_control, col_display = st.columns([1, 1])
 
+ver = st.session_state['ver']
+
 with col_control:
     st.subheader("Панель управления государством / системой")
     
     st.selectbox("Готовый пресет сценария:", list(PRESETS.keys()), key="selected_preset", on_change=apply_preset)
     st.write("---")
     
-    st.number_input("V (Объём / Силовой аппарат):", min_value=0.10, max_value=2.00, step=0.05, format="%.2f", key="input_V", on_change=update_inputs, args=('V',))
-    st.number_input("R (Ресурсы / Бензин):", min_value=0.10, max_value=2.00, step=0.05, format="%.2f", key="input_R", on_change=update_inputs, args=('R',))
-    st.number_input("T (Время / Дальний свет):", min_value=0.10, max_value=2.00, step=0.05, format="%.2f", key="input_T", on_change=update_inputs, args=('T',))
-    st.number_input("Q (Качество / Надежность):", min_value=0.10, max_value=2.00, step=0.05, format="%.2f", key="input_Q", on_change=update_inputs, args=('Q',))
-    st.number_input("M (Смысл / Путеводная звезда):", min_value=0.10, max_value=2.00, step=0.05, format="%.2f", key="input_M", on_change=update_inputs, args=('M',))
+    st.number_input("V (Объём / Силовой аппарат):", min_value=0.10, max_value=2.00, value=float(st.session_state['V']), step=0.05, format="%.2f", key=f"input_V_{ver}", on_change=update_inputs, args=('V',))
+    st.number_input("R (Ресурсы / Бензин):", min_value=0.10, max_value=2.00, value=float(st.session_state['R']), step=0.05, format="%.2f", key=f"input_R_{ver}", on_change=update_inputs, args=('R',))
+    st.number_input("T (Время / Дальний свет):", min_value=0.10, max_value=2.00, value=float(st.session_state['T']), step=0.05, format="%.2f", key=f"input_T_{ver}", on_change=update_inputs, args=('T',))
+    st.number_input("Q (Качество / Надежность):", min_value=0.10, max_value=2.00, value=float(st.session_state['Q']), step=0.05, format="%.2f", key=f"input_Q_{ver}", on_change=update_inputs, args=('Q',))
+    st.number_input("M (Смысл / Путеводная звезда):", min_value=0.10, max_value=2.00, value=float(st.session_state['M']), step=0.05, format="%.2f", key=f"input_M_{ver}", on_change=update_inputs, args=('M',))
 
 # 3. РАСЧЕТ И МЕТРИКИ
-V = st.session_state['input_V']
-R = st.session_state['input_R']
-T = st.session_state['input_T']
-Q = st.session_state['input_Q']
-M = st.session_state['input_M']
+V = st.session_state['V']
+R = st.session_state['R']
+T = st.session_state['T']
+Q = st.session_state['Q']
+M = st.session_state['M']
 
 delta = (abs(V - 1.0) + abs(R - 1.0) + abs(T - 1.0) + abs(Q - 1.0) + abs(M - 1.0)) / 5.0
 V_safe = V if V > 0 else 0.001
@@ -113,7 +116,7 @@ with col_display:
     m1, m2, m3 = st.columns(3)
     m1.metric("Сумма ΣXi", f"{V+R+T+Q+M:.2f} / 5.0")
     m2.metric("Дисбаланс Δ", f"{delta:.4f}")
-    m3.metric("Индекс Гармонии H", f"{H:.6f}")
+    m3.metric("Индикатор Гармонии H", f"{H:.6f}")
 
     # РАДАР
     fig = go.Figure()
