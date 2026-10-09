@@ -17,24 +17,28 @@ PRESETS = {
     "Технологический / Долгосрочный рывок": {"V": 1.00, "R": 1.40, "T": 1.40, "Q": 1.20, "M": 1.30},
 }
 
-# Инициализация переменных и их предыдущих значений для точного отслеживания шага
+if 'counter' not in st.session_state:
+    st.session_state['counter'] = 0
+
 for k in ['V', 'R', 'T', 'Q', 'M']:
     if k not in st.session_state:
         st.session_state[k] = 1.00
-    if f"prev_{k}" not in st.session_state:
-        st.session_state[f"prev_{k}"] = st.session_state[k]
 
 def clamp(val):
     return max(0.10, min(2.00, round(val, 2)))
 
-# Синхронная динамическая связка ползунков
+# Синхронная динамическая связка с гарантированным пересчетом интерфейса
 def update_sliders(changed_key):
-    current_val = st.session_state[changed_key]
-    prev_val = st.session_state[f"prev_{changed_key}"]
-    delta = current_val - prev_val
+    cnt = st.session_state['counter']
+    current_widget_key = f"slider_{changed_key}_{cnt}"
+    new_val = st.session_state[current_widget_key]
+    old_val = st.session_state[changed_key]
+    delta = new_val - old_val
 
     if abs(delta) < 0.001:
         return
+
+    st.session_state[changed_key] = new_val
 
     if changed_key == 'M':
         st.session_state['Q'] = clamp(st.session_state['Q'] + 0.65 * delta)
@@ -60,15 +64,13 @@ def update_sliders(changed_key):
         st.session_state['R'] = clamp(st.session_state['R'] - 0.35 * delta)
         st.session_state['T'] = clamp(st.session_state['T'] - 0.30 * delta)
 
-    # Синхронизация истории прошлых значений
-    for k in ['V', 'R', 'T', 'Q', 'M']:
-        st.session_state[f"prev_{k}"] = st.session_state[k]
+    st.session_state['counter'] += 1
 
 def apply_preset():
     preset = PRESETS[st.session_state.selected_preset]
     for k, v in preset.items():
         st.session_state[k] = v
-        st.session_state[f"prev_{k}"] = v
+    st.session_state['counter'] += 1
 
 # 2. ИНТЕРФЕЙС
 st.title("🌐 Digital Twin Earth: H-Engine Simulator")
@@ -76,16 +78,18 @@ st.caption("Автор концепта: В. В. Ващук (Dedushka LADiMIR) |
 
 col_control, col_display = st.columns([1, 1])
 
+cnt = st.session_state['counter']
+
 with col_control:
     st.subheader("Панель управления государством / системой")
     
     st.selectbox("Готовый пресет сценария:", list(PRESETS.keys()), key="selected_preset", on_change=apply_preset)
     
-    st.slider("V (Объём / Силовой аппарат):", 0.10, 2.00, step=0.05, key="V", on_change=update_sliders, args=('V',))
-    st.slider("R (Ресурсы / Бензин):", 0.10, 2.00, step=0.05, key="R", on_change=update_sliders, args=('R',))
-    st.slider("T (Время / Дальний свет):", 0.10, 2.00, step=0.05, key="T", on_change=update_sliders, args=('T',))
-    st.slider("Q (Качество / Надежность):", 0.10, 2.00, step=0.05, key="Q", on_change=update_sliders, args=('Q',))
-    st.slider("M (Смысл / Путеводная звезда):", 0.10, 2.00, step=0.05, key="M", on_change=update_sliders, args=('M',))
+    st.slider("V (Объём / Силовой аппарат):", 0.10, 2.00, value=float(st.session_state['V']), step=0.05, key=f"slider_V_{cnt}", on_change=update_sliders, args=('V',))
+    st.slider("R (Ресурсы / Бензин):", 0.10, 2.00, value=float(st.session_state['R']), step=0.05, key=f"slider_R_{cnt}", on_change=update_sliders, args=('R',))
+    st.slider("T (Время / Дальний свет):", 0.10, 2.00, step=0.05, value=float(st.session_state['T']), key=f"slider_T_{cnt}", on_change=update_sliders, args=('T',))
+    st.slider("Q (Качество / Надежность):", 0.10, 2.00, step=0.05, value=float(st.session_state['Q']), key=f"slider_Q_{cnt}", on_change=update_sliders, args=('Q',))
+    st.slider("M (Смысл / Путеводная звезда):", 0.10, 2.00, step=0.05, value=float(st.session_state['M']), key=f"slider_M_{cnt}", on_change=update_sliders, args=('M',))
 
 # 3. РАСЧЕТ И МЕТРИКИ
 V = st.session_state['V']
