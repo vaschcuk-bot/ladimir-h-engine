@@ -1,128 +1,280 @@
+
 import streamlit as st
 import plotly.graph_objects as go
+
+# ============================================================
+# DIGITAL TWIN EARTH: H-ENGINE
+# Синхронизированная архитектура состояния Streamlit
+# ============================================================
 
 st.set_page_config(
     page_title="Digital Twin Earth: H-Engine",
     page_icon="🌐",
-    layout="wide"
+    layout="wide",
 )
 
-PRESETS = {
-    "Эталон (Гармония)": {"V": 1.00, "R": 1.00, "T": 1.00, "Q": 1.00, "M": 1.00},
-    "Кризис Смысла (М = 0.2)": {"V": 1.00, "R": 1.00, "T": 1.00, "Q": 1.00, "M": 0.20},
-    "Короткий чек / Суета (T = 0.3)": {"V": 1.00, "R": 1.00, "T": 0.30, "Q": 1.00, "M": 1.00},
-    "Застой / Силовой зажим": {"V": 1.60, "R": 0.50, "T": 0.30, "Q": 0.40, "M": 0.20},
-    "Технологический / Долгосрочный рывок": {"V": 1.00, "R": 1.40, "T": 1.40, "Q": 1.20, "M": 1.30},
+PARAMS = ("V", "R", "T", "Q", "M")
+MIN_VAL = 0.10
+MAX_VAL = 2.00
+STEP = 0.05
+
+LABELS = {
+    "V": "V — Объём / Силовой аппарат",
+    "R": "R — Ресурсы / Бензин",
+    "T": "T — Время / Дальний свет",
+    "Q": "Q — Качество / Надёжность",
+    "M": "M — Смысл / Путеводная звезда",
 }
 
-if 'ver' not in st.session_state:
-    st.session_state['ver'] = 0
-    for k in ['V', 'R', 'T', 'Q', 'M']:
-        st.session_state[k] = 1.00
+PRESETS = {
+    "Эталон (Гармония)": {
+        "V": 1.00, "R": 1.00, "T": 1.00,
+        "Q": 1.00, "M": 1.00,
+    },
+    "Кризис Смысла (M = 0.2)": {
+        "V": 1.00, "R": 1.00, "T": 1.00,
+        "Q": 1.00, "M": 0.20,
+    },
+    "Короткий чек / Суета (T = 0.3)": {
+        "V": 1.00, "R": 1.00, "T": 0.30,
+        "Q": 1.00, "M": 1.00,
+    },
+    "Застой / Силовой зажим": {
+        "V": 1.60, "R": 0.50, "T": 0.30,
+        "Q": 0.40, "M": 0.20,
+    },
+    "Технологический / Долгосрочный рывок": {
+        "V": 1.00, "R": 1.40, "T": 1.40,
+        "Q": 1.20, "M": 1.30,
+    },
+}
 
-def clamp(val):
-    return max(0.10, min(2.00, round(val, 2)))
+
+def clamp(value):
+    """Ограничение диапазона с округлением до сотых."""
+    return round(max(MIN_VAL, min(MAX_VAL, value)), 2)
+
+
+def read_model():
+    """Получить единый снимок пяти параметров."""
+    return {k: float(st.session_state[f"input_{k}"])
+            for k in PARAMS}
+
+
+def write_model(values):
+    """Синхронно записать модель и ключи всех виджетов."""
+    for k in PARAMS:
+        value = clamp(float(values[k]))
+        st.session_state[f"input_{k}"] = value
+        st.session_state[f"_model_{k}"] = value
+
 
 def update_inputs(changed_key):
-    ver = st.session_state['ver']
-    new_val = st.session_state[f"input_{changed_key}_{ver}"]
-    old_val = st.session_state[changed_key]
-    delta = round(new_val - old_val, 2)
+    """
+    Вызывается до перерисовки интерфейса.
+    Изменённое значение уже находится в input_<key>.
+    Остальные ключи можно безопасно обновить здесь.
+    """
+    new_value = float(st.session_state[f"input_{changed_key}"])
+    old_value = float(st.session_state[f"_model_{changed_key}"])
+    delta = round(new_value - old_value, 2)
 
+    # Защита от повторной обработки неизменившегося значения.
     if abs(delta) < 0.001:
         return
 
-    st.session_state[changed_key] = new_val
+    values = read_model()
+    values[changed_key] = clamp(new_value)
 
-    if changed_key == 'M':
-        st.session_state['Q'] = clamp(st.session_state['Q'] + 0.65 * delta)
-        st.session_state['R'] = clamp(st.session_state['R'] + 0.45 * delta)
-        st.session_state['T'] = clamp(st.session_state['T'] + 0.50 * delta)
-        st.session_state['V'] = clamp(st.session_state['V'] - 0.40 * delta)
-    elif changed_key == 'T':
-        st.session_state['Q'] = clamp(st.session_state['Q'] + 0.55 * delta)
-        st.session_state['M'] = clamp(st.session_state['M'] + 0.50 * delta)
-        st.session_state['R'] = clamp(st.session_state['R'] + 0.40 * delta)
-        st.session_state['V'] = clamp(st.session_state['V'] - 0.35 * delta)
-    elif changed_key == 'R':
-        st.session_state['Q'] = clamp(st.session_state['Q'] + 0.50 * delta)
-        st.session_state['T'] = clamp(st.session_state['T'] + 0.40 * delta)
-        st.session_state['M'] = clamp(st.session_state['M'] + 0.30 * delta)
-        st.session_state['V'] = clamp(st.session_state['V'] + 0.20 * delta)
-    elif changed_key == 'Q':
-        st.session_state['M'] = clamp(st.session_state['M'] + 0.50 * delta)
-        st.session_state['T'] = clamp(st.session_state['T'] + 0.35 * delta)
-        st.session_state['R'] = clamp(st.session_state['R'] + 0.30 * delta)
-    elif changed_key == 'V' and delta > 0:
-        st.session_state['Q'] = clamp(st.session_state['Q'] - 0.45 * delta)
-        st.session_state['M'] = clamp(st.session_state['M'] - 0.55 * delta)
-        st.session_state['R'] = clamp(st.session_state['R'] - 0.35 * delta)
-        st.session_state['T'] = clamp(st.session_state['T'] - 0.30 * delta)
+    # Матрица перекрёстных связей исходной модели.
+    effects = {
+        "M": {"Q": 0.65, "R": 0.45, "T": 0.50, "V": -0.40},
+        "T": {"Q": 0.55, "M": 0.50, "R": 0.40, "V": -0.35},
+        "R": {"Q": 0.50, "T": 0.40, "M": 0.30, "V": 0.20},
+        "Q": {"M": 0.50, "T": 0.35, "R": 0.30},
+    }
 
-    st.session_state['ver'] += 1
+    if changed_key in effects:
+        for target, coefficient in effects[changed_key].items():
+            values[target] = clamp(
+                values[target] + coefficient * delta
+            )
+
+    elif changed_key == "V" and delta > 0:
+        values["Q"] = clamp(values["Q"] - 0.45 * delta)
+        values["M"] = clamp(values["M"] - 0.55 * delta)
+        values["R"] = clamp(values["R"] - 0.35 * delta)
+        values["T"] = clamp(values["T"] - 0.30 * delta)
+
+    # При снижении V исходная модель не задаёт обратную коррекцию.
+    write_model(values)
+
 
 def apply_preset():
-    preset = PRESETS[st.session_state.selected_preset]
-    for k, v in preset.items():
-        st.session_state[k] = v
-    st.session_state['ver'] += 1
+    """Пресет заменяет все пять значений как одна операция."""
+    preset_name = st.session_state["selected_preset"]
+    write_model(PRESETS[preset_name])
+
+
+# ============================================================
+# ИНИЦИАЛИЗАЦИЯ СОСТОЯНИЯ
+# ============================================================
+
+if "_initialized" not in st.session_state:
+    for k in PARAMS:
+        st.session_state[f"input_{k}"] = 1.00
+        st.session_state[f"_model_{k}"] = 1.00
+
+    st.session_state["selected_preset"] = "Эталон (Гармония)"
+    st.session_state["_initialized"] = True
+
+# ============================================================
+# ЗАГОЛОВОК И ПАНЕЛИ
+# ============================================================
 
 st.title("🌐 Digital Twin Earth: H-Engine Simulator")
-st.caption("Автор концепта: В. В. Ващук (Dedushka LADiMIR) | Антикризисная модель Гармонии Систем")
+st.caption(
+    "Автор концепта: В. В. Ващук (Dedushka LADiMIR) | "
+    "Антикризисная модель гармонии систем"
+)
 
 col_control, col_display = st.columns([1, 1])
 
-ver = st.session_state['ver']
-
 with col_control:
     st.subheader("Панель управления системой")
-    st.selectbox("Готовый пресет сценария:", list(PRESETS.keys()), key="selected_preset", on_change=apply_preset)
-    st.write("---")
-    
-    st.number_input("V (Объём / Силовой аппарат):", min_value=0.10, max_value=2.00, value=float(st.session_state['V']), step=0.05, format="%.2f", key=f"input_V_{ver}", on_change=update_inputs, args=('V',))
-    st.number_input("R (Ресурсы / Бензин):", min_value=0.10, max_value=2.00, value=float(st.session_state['R']), step=0.05, format="%.2f", key=f"input_R_{ver}", on_change=update_inputs, args=('R',))
-    st.number_input("T (Время / Дальний свет):", min_value=0.10, max_value=2.00, value=float(st.session_state['T']), step=0.05, format="%.2f", key=f"input_T_{ver}", on_change=update_inputs, args=('T',))
-    st.number_input("Q (Качество / Надежность):", min_value=0.10, max_value=2.00, value=float(st.session_state['Q']), step=0.05, format="%.2f", key=f"input_Q_{ver}", on_change=update_inputs, args=('Q',))
-    st.number_input("M (Смысл / Путеводная звезда):", min_value=0.10, max_value=2.00, value=float(st.session_state['M']), step=0.05, format="%.2f", key=f"input_M_{ver}", on_change=update_inputs, args=('M',))
 
-V = st.session_state['V']
-R = st.session_state['R']
-T = st.session_state['T']
-Q = st.session_state['Q']
-M = st.session_state['M']
+    st.selectbox(
+        "Готовый пресет сценария:",
+        options=list(PRESETS.keys()),
+        key="selected_preset",
+        on_change=apply_preset,
+    )
 
-delta = (abs(V - 1.0) + abs(R - 1.0) + abs(T - 1.0) + abs(Q - 1.0) + abs(M - 1.0)) / 5.0
-V_safe = V if V > 0 else 0.001
+    st.divider()
+
+    for k in PARAMS:
+        st.number_input(
+            LABELS[k],
+            min_value=MIN_VAL,
+            max_value=MAX_VAL,
+            step=STEP,
+            format="%.2f",
+            key=f"input_{k}",
+            on_change=update_inputs,
+            args=(k,),
+        )
+
+    st.caption(
+        "Изменение одного параметра автоматически корректирует "
+        "связанные параметры по заданной матрице."
+    )
+
+# Единый снимок для всех вычислений и визуализаций.
+model = read_model()
+V, R, T, Q, M = (model[k] for k in PARAMS)
+
+# ============================================================
+# РАСЧЁТ МЕТРИК
+# ============================================================
+
+sigma = sum(model.values())
+
+# Среднее абсолютное отклонение от эталона 1.0.
+delta = sum(abs(model[k] - 1.0) for k in PARAMS) / len(PARAMS)
+
+V_safe = max(V, 0.001)
 H = (Q * M * R * T) / (V_safe * (1.0 + delta))
-is_collapse = (delta >= 0.60) or (H <= 0.005) or (M <= 0.15)
+
+is_collapse = (
+    delta >= 0.60
+    or H <= 0.005
+    or M <= 0.15
+)
+
+is_warning = delta > 0.35 or H < 0.05
+
+# ============================================================
+# ПАНЕЛЬ СОСТОЯНИЯ
+# ============================================================
 
 with col_display:
     st.subheader("Состояние и фазовая зона")
-    
+
     if is_collapse:
-        st.error("🚨 ФАЗОВЫЙ ПЕРЕХОД: СИСТЕМНЫЙ КОЛЛАПС / КРАХ")
-    elif delta > 0.35 or H < 0.05:
+        st.error("🚨 СИСТЕМНЫЙ КОЛЛАПС / КРАХ")
+        status_color = "#FF2A2A"
+    elif is_warning:
         st.warning("⚠️ ПРЕДАВАРИЙНОЕ СОСТОЯНИЕ / КРИЗИС")
+        status_color = "#FFA500"
     else:
-        st.success("✅ УСТОЙЧИВОЕ ГАРМОНИЧНОЕ СОСТОЯНИЕ")
+        st.success("✅ УСТОЙЧИВОЕ СОСТОЯНИЕ")
+        status_color = "#00E676"
 
     m1, m2, m3 = st.columns(3)
-    m1.metric("Сумма ΣXi", f"{V+R+T+Q+M:.2f} / 5.0")
+
+    m1.metric("Сумма ΣXi", f"{sigma:.2f} / 5.00")
     m2.metric("Дисбаланс Δ", f"{delta:.4f}")
-    m3.metric("Индекс Гармонии H", f"{H:.6f}")
+    m3.metric("Индекс гармонии H", f"{H:.6f}")
+
+    st.caption(
+        "Статус вычисляется по порогам заданной модели, "
+        "а не является подтверждённым прогнозом реальной системы."
+    )
+
+    # Полярная диаграмма.
+    axes = ["V (Объём)", "R (Ресурсы)", "T (Время)",
+            "Q (Качество)", "M (Смысл)"]
 
     fig = go.Figure()
+
     fig.add_trace(go.Scatterpolar(
-        r=[V, R, T, Q, M],
-        theta=['V (Volume)', 'R (Resources)', 'T (Time)', 'Q (Quality)', 'M (Meaning)'],
-        fill='toself',
-        name='Состояние системы',
-        line_color="#FF2A2A" if is_collapse else ("#FFA500" if delta > 0.35 else "#00E676")
+        r=[V, R, T, Q, M, V],
+        theta=axes + [axes[0]],
+        fill="toself",
+        name="Текущее состояние",
+        line=dict(color=status_color, width=3),
     ))
+
     fig.add_trace(go.Scatterpolar(
-        r=[1.0]*5,
-        theta=['V (Volume)', 'R (Resources)', 'T (Time)', 'Q (Quality)', 'M (Meaning)'],
-        fill='none', name='Эталон (1.0)', line=dict(color='white', dash='dash')
+        r=[1.0] * 6,
+        theta=axes + [axes[0]],
+        mode="lines",
+        name="Эталон (1.0)",
+        line=dict(color="white", dash="dash", width=2),
     ))
-    fig.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 2.0])), template="plotly_dark", height=380)
+
+    fig.update_layout(
+        template="plotly_dark",
+        height=430,
+        margin=dict(l=35, r=35, t=35, b=35),
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[0, 2.0],
+                tick0=0,
+                dtick=0.5,
+            ),
+        ),
+        legend=dict(orientation="h", yanchor="bottom", y=-0.18),
+    )
+
     st.plotly_chart(fig, use_container_width=True)
+
+# ============================================================
+# ТАБЛИЦА ПАРАМЕТРОВ
+# ============================================================
+
+st.subheader("Контроль параметров")
+
+st.dataframe(
+    [
+        {
+            "Параметр": k,
+            "Значение": f"{model[k]:.2f}",
+            "Отклонение от 1.0": f"{model[k] - 1.0:+.2f}",
+        }
+        for k in PARAMS
+    ],
+    hide_index=True,
+    use_container_width=True,
+)
