@@ -17,21 +17,20 @@ PRESETS = {
     "Технологический / Долгосрочный рывок": {"V": 1.00, "R": 1.40, "T": 1.40, "Q": 1.20, "M": 1.30},
 }
 
-# Инициализация параметров в session_state
 for k in ['V', 'R', 'T', 'Q', 'M']:
     if k not in st.session_state:
         st.session_state[k] = 1.00
-    if f"last_{k}" not in st.session_state:
-        st.session_state[f"last_{k}"] = st.session_state[k]
+    if f"prev_{k}" not in st.session_state:
+        st.session_state[f"prev_{k}"] = st.session_state[k]
 
 def clamp(val):
     return max(0.10, min(2.00, round(val, 2)))
 
 # Динамическая переоценка всех параметров
-def on_slider_change(changed_key):
-    new_val = st.session_state[changed_key]
-    old_val = st.session_state[f"last_{changed_key}"]
-    delta = new_val - old_val
+def sync_sliders(changed_key):
+    curr = st.session_state[changed_key]
+    prev = st.session_state[f"prev_{changed_key}"]
+    delta = curr - prev
 
     if abs(delta) < 0.001:
         return
@@ -60,15 +59,19 @@ def on_slider_change(changed_key):
         st.session_state['R'] = clamp(st.session_state['R'] - 0.35 * delta)
         st.session_state['T'] = clamp(st.session_state['T'] - 0.30 * delta)
 
-    # Фиксируем новые значения как прошлые
+    # Фиксируем новые значения для отслеживания дельты
     for k in ['V', 'R', 'T', 'Q', 'M']:
-        st.session_state[f"last_{k}"] = st.session_state[k]
+        st.session_state[f"prev_{k}"] = st.session_state[k]
+
+    # Принудительный перезапуск для физического движения ручек на экране
+    st.rerun()
 
 def apply_preset():
     preset = PRESETS[st.session_state.selected_preset]
     for k, v in preset.items():
         st.session_state[k] = v
-        st.session_state[f"last_{k}"] = v
+        st.session_state[f"prev_{k}"] = v
+    st.rerun()
 
 # 2. ИНТЕРФЕЙС
 st.title("🌐 Digital Twin Earth: H-Engine Simulator")
@@ -81,11 +84,11 @@ with col_control:
     
     st.selectbox("Готовый пресет сценария:", list(PRESETS.keys()), key="selected_preset", on_change=apply_preset)
     
-    st.slider("V (Объём / Силовой аппарат):", 0.10, 2.00, step=0.05, key="V", on_change=on_slider_change, args=('V',))
-    st.slider("R (Ресурсы / Бензин):", 0.10, 2.00, step=0.05, key="R", on_change=on_slider_change, args=('R',))
-    st.slider("T (Время / Дальний свет):", 0.10, 2.00, step=0.05, key="T", on_change=on_slider_change, args=('T',))
-    st.slider("Q (Качество / Надежность):", 0.10, 2.00, step=0.05, key="Q", on_change=on_slider_change, args=('Q',))
-    st.slider("M (Смысл / Путеводная звезда):", 0.10, 2.00, step=0.05, key="M", on_change=on_slider_change, args=('M',))
+    st.slider("V (Объём / Силовой аппарат):", 0.10, 2.00, step=0.05, key="V", on_change=sync_sliders, args=('V',))
+    st.slider("R (Ресурсы / Бензин):", 0.10, 2.00, step=0.05, key="R", on_change=sync_sliders, args=('R',))
+    st.slider("T (Время / Дальний свет):", 0.10, 2.00, step=0.05, key="T", on_change=sync_sliders, args=('T',))
+    st.slider("Q (Качество / Надежность):", 0.10, 2.00, step=0.05, key="Q", on_change=sync_sliders, args=('Q',))
+    st.slider("M (Смысл / Путеводная звезда):", 0.10, 2.00, step=0.05, key="M", on_change=sync_sliders, args=('M',))
 
 # 3. РАСЧЕТ И МЕТРИКИ
 V = st.session_state['V']
