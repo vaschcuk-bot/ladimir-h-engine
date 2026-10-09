@@ -25,10 +25,10 @@ if 'ver' not in st.session_state:
 def clamp(val):
     return max(0.10, min(2.00, round(val, 2)))
 
-# Динамический пересчет с версионированием виджетов
-def update_inputs(changed_key):
+# Динамический пересчет слайдеров с версионированием
+def update_sliders(changed_key):
     ver = st.session_state['ver']
-    new_val = st.session_state[f"input_{changed_key}_{ver}"]
+    new_val = st.session_state[f"slider_{changed_key}_{ver}"]
     old_val = st.session_state[changed_key]
     delta = round(new_val - old_val, 2)
 
@@ -84,11 +84,11 @@ with col_control:
     st.selectbox("Готовый пресет сценария:", list(PRESETS.keys()), key="selected_preset", on_change=apply_preset)
     st.write("---")
     
-    st.number_input("V (Объём / Силовой аппарат):", min_value=0.10, max_value=2.00, value=float(st.session_state['V']), step=0.05, format="%.2f", key=f"input_V_{ver}", on_change=update_inputs, args=('V',))
-    st.number_input("R (Ресурсы / Бензин):", min_value=0.10, max_value=2.00, value=float(st.session_state['R']), step=0.05, format="%.2f", key=f"input_R_{ver}", on_change=update_inputs, args=('R',))
-    st.number_input("T (Время / Дальний свет):", min_value=0.10, max_value=2.00, value=float(st.session_state['T']), step=0.05, format="%.2f", key=f"input_T_{ver}", on_change=update_inputs, args=('T',))
-    st.number_input("Q (Качество / Надежность):", min_value=0.10, max_value=2.00, value=float(st.session_state['Q']), step=0.05, format="%.2f", key=f"input_Q_{ver}", on_change=update_inputs, args=('Q',))
-    st.number_input("M (Смысл / Путеводная звезда):", min_value=0.10, max_value=2.00, value=float(st.session_state['M']), step=0.05, format="%.2f", key=f"input_M_{ver}", on_change=update_inputs, args=('M',))
+    st.slider("V (Объём / Силовой аппарат):", min_value=0.10, max_value=2.00, value=float(st.session_state['V']), step=0.05, format="%.2f", key=f"slider_V_{ver}", on_change=update_sliders, args=('V',))
+    st.slider("R (Ресурсы / Бензин):", min_value=0.10, max_value=2.00, value=float(st.session_state['R']), step=0.05, format="%.2f", key=f"slider_R_{ver}", on_change=update_sliders, args=('R',))
+    st.slider("T (Время / Дальний свет):", min_value=0.10, max_value=2.00, value=float(st.session_state['T']), step=0.05, format="%.2f", key=f"slider_T_{ver}", on_change=update_sliders, args=('T',))
+    st.slider("Q (Качество / Надежность):", min_value=0.10, max_value=2.00, value=float(st.session_state['Q']), step=0.05, format="%.2f", key=f"slider_Q_{ver}", on_change=update_sliders, args=('Q',))
+    st.slider("M (Смысл / Путеводная звезда):", min_value=0.10, max_value=2.00, value=float(st.session_state['M']), step=0.05, format="%.2f", key=f"slider_M_{ver}", on_change=update_sliders, args=('M',))
 
 # 3. РАСЧЕТ И МЕТРИКИ
 V = st.session_state['V']
