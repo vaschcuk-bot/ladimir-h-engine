@@ -62,7 +62,6 @@ def update_inputs(changed_key):
         st.session_state['R'] = clamp(st.session_state['R'] - 0.35 * delta)
         st.session_state['T'] = clamp(st.session_state['T'] - 0.30 * delta)
 
-    # Увеличиваем версию для перерисовки полей ввода на следующем проходе
     st.session_state['ver'] += 1
 
 def apply_preset():
@@ -80,7 +79,7 @@ col_control, col_display = st.columns([1, 1])
 ver = st.session_state['ver']
 
 with col_control:
-    st.subheader("Панель управления государством / системой")
+    st.subheader("Панель управления системой")
     
     st.selectbox("Готовый пресет сценария:", list(PRESETS.keys()), key="selected_preset", on_change=apply_preset)
     st.write("---")
@@ -116,7 +115,7 @@ with col_display:
     m1, m2, m3 = st.columns(3)
     m1.metric("Сумма ΣXi", f"{V+R+T+Q+M:.2f} / 5.0")
     m2.metric("Дисбаланс Δ", f"{delta:.4f}")
-    m3.metric("Индикатор Гармонии H", f"{H:.6f}")
+    m3.metric("Индекс Гармонии H", f"{H:.6f}")
 
     # РАДАР
     fig = go.Figure()
