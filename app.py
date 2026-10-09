@@ -1,14 +1,12 @@
 import streamlit as st
 import plotly.graph_objects as go
 
-# Настройка страницы
 st.set_page_config(
     page_title="Digital Twin Earth: H-Engine",
     page_icon="🌐",
     layout="wide"
 )
 
-# 1. ПРЕПРОФИЛИ И ИНИЦИАЛИЗАЦИЯ
 PRESETS = {
     "Эталон (Гармония)": {"V": 1.00, "R": 1.00, "T": 1.00, "Q": 1.00, "M": 1.00},
     "Кризис Смысла (М = 0.2)": {"V": 1.00, "R": 1.00, "T": 1.00, "Q": 1.00, "M": 0.20},
@@ -25,10 +23,9 @@ if 'ver' not in st.session_state:
 def clamp(val):
     return max(0.10, min(2.00, round(val, 2)))
 
-# Динамический пересчет слайдеров с версионированием
-def update_sliders(changed_key):
+def update_inputs(changed_key):
     ver = st.session_state['ver']
-    new_val = st.session_state[f"slider_{changed_key}_{ver}"]
+    new_val = st.session_state[f"input_{changed_key}_{ver}"]
     old_val = st.session_state[changed_key]
     delta = round(new_val - old_val, 2)
 
@@ -70,7 +67,6 @@ def apply_preset():
         st.session_state[k] = v
     st.session_state['ver'] += 1
 
-# 2. ИНТЕРФЕЙС
 st.title("🌐 Digital Twin Earth: H-Engine Simulator")
 st.caption("Автор концепта: В. В. Ващук (Dedushka LADiMIR) | Антикризисная модель Гармонии Систем")
 
@@ -80,17 +76,15 @@ ver = st.session_state['ver']
 
 with col_control:
     st.subheader("Панель управления системой")
-    
     st.selectbox("Готовый пресет сценария:", list(PRESETS.keys()), key="selected_preset", on_change=apply_preset)
     st.write("---")
     
-    st.slider("V (Объём / Силовой аппарат):", min_value=0.10, max_value=2.00, value=float(st.session_state['V']), step=0.05, format="%.2f", key=f"slider_V_{ver}", on_change=update_sliders, args=('V',))
-    st.slider("R (Ресурсы / Бензин):", min_value=0.10, max_value=2.00, value=float(st.session_state['R']), step=0.05, format="%.2f", key=f"slider_R_{ver}", on_change=update_sliders, args=('R',))
-    st.slider("T (Время / Дальний свет):", min_value=0.10, max_value=2.00, value=float(st.session_state['T']), step=0.05, format="%.2f", key=f"slider_T_{ver}", on_change=update_sliders, args=('T',))
-    st.slider("Q (Качество / Надежность):", min_value=0.10, max_value=2.00, value=float(st.session_state['Q']), step=0.05, format="%.2f", key=f"slider_Q_{ver}", on_change=update_sliders, args=('Q',))
-    st.slider("M (Смысл / Путеводная звезда):", min_value=0.10, max_value=2.00, value=float(st.session_state['M']), step=0.05, format="%.2f", key=f"slider_M_{ver}", on_change=update_sliders, args=('M',))
+    st.number_input("V (Объём / Силовой аппарат):", min_value=0.10, max_value=2.00, value=float(st.session_state['V']), step=0.05, format="%.2f", key=f"input_V_{ver}", on_change=update_inputs, args=('V',))
+    st.number_input("R (Ресурсы / Бензин):", min_value=0.10, max_value=2.00, value=float(st.session_state['R']), step=0.05, format="%.2f", key=f"input_R_{ver}", on_change=update_inputs, args=('R',))
+    st.number_input("T (Время / Дальний свет):", min_value=0.10, max_value=2.00, value=float(st.session_state['T']), step=0.05, format="%.2f", key=f"input_T_{ver}", on_change=update_inputs, args=('T',))
+    st.number_input("Q (Качество / Надежность):", min_value=0.10, max_value=2.00, value=float(st.session_state['Q']), step=0.05, format="%.2f", key=f"input_Q_{ver}", on_change=update_inputs, args=('Q',))
+    st.number_input("M (Смысл / Путеводная звезда):", min_value=0.10, max_value=2.00, value=float(st.session_state['M']), step=0.05, format="%.2f", key=f"input_M_{ver}", on_change=update_inputs, args=('M',))
 
-# 3. РАСЧЕТ И МЕТРИКИ
 V = st.session_state['V']
 R = st.session_state['R']
 T = st.session_state['T']
@@ -117,7 +111,6 @@ with col_display:
     m2.metric("Дисбаланс Δ", f"{delta:.4f}")
     m3.metric("Индекс Гармонии H", f"{H:.6f}")
 
-    # РАДАР
     fig = go.Figure()
     fig.add_trace(go.Scatterpolar(
         r=[V, R, T, Q, M],
